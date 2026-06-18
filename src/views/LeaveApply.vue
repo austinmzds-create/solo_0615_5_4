@@ -10,6 +10,12 @@ import {
   type LeaveStatus,
   type LeaveType
 } from '../mock/leaves'
+import {
+  DEFAULT_EMERGENCY_CONTACT,
+  EMERGENCY_CONTACT_VALIDATION_RULES,
+  displayContactName,
+  displayContactPhone
+} from '../utils/emergencyContact'
 import { mockUsers } from '../mock/accounts'
 
 const router = useRouter()
@@ -27,8 +33,7 @@ const applyForm = reactive({
   startDate: '',
   endDate: '',
   reason: '',
-  emergencyContactName: '',
-  emergencyContactPhone: ''
+  ...DEFAULT_EMERGENCY_CONTACT
 })
 
 const currentUser = computed(() => {
@@ -49,11 +54,7 @@ const applyRules: FormRules = {
     { required: true, message: '请填写请假原因', trigger: 'blur' },
     { min: 5, message: '请假原因至少5个字', trigger: 'blur' }
   ],
-  emergencyContactName: [{ required: true, message: '请填写紧急联系人姓名', trigger: 'blur' }],
-  emergencyContactPhone: [
-    { required: true, message: '请填写紧急联系人电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-  ]
+  ...EMERGENCY_CONTACT_VALIDATION_RULES
 }
 
 onMounted(() => {
@@ -81,8 +82,7 @@ const resetApplyForm = () => {
   applyForm.startDate = ''
   applyForm.endDate = ''
   applyForm.reason = ''
-  applyForm.emergencyContactName = ''
-  applyForm.emergencyContactPhone = ''
+  Object.assign(applyForm, DEFAULT_EMERGENCY_CONTACT)
 }
 
 const validateDateRange = () => {
@@ -197,9 +197,9 @@ const statusLabel = (status: LeaveStatus) => {
               <template #default="{ row }">
                 <div class="contact-cell">
                   <el-icon><User /></el-icon>
-                  <span>{{ row.emergencyContactName || '-' }}</span>
+                  <span>{{ displayContactName(row) }}</span>
                   <el-icon class="phone-icon"><Phone /></el-icon>
-                  <span>{{ row.emergencyContactPhone || '-' }}</span>
+                  <span>{{ displayContactPhone(row) }}</span>
                 </div>
               </template>
             </el-table-column>
@@ -337,8 +337,8 @@ const statusLabel = (status: LeaveStatus) => {
           </el-descriptions-item>
           <el-descriptions-item label="开始日期">{{ currentApplication.startDate }}</el-descriptions-item>
           <el-descriptions-item label="结束日期">{{ currentApplication.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="紧急联系人">{{ currentApplication.emergencyContactName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ currentApplication.emergencyContactPhone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="紧急联系人">{{ displayContactName(currentApplication) }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ displayContactPhone(currentApplication) }}</el-descriptions-item>
           <el-descriptions-item label="请假原因" :span="2">{{ currentApplication.reason }}</el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ currentApplication.submittedAt }}</el-descriptions-item>
           <el-descriptions-item v-if="currentApplication.approvedAt" label="审批时间">

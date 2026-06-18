@@ -1,7 +1,10 @@
+import type { EmergencyContact } from '../utils/emergencyContact'
+import { withEmergencyContactDefaults } from '../utils/emergencyContact'
+
 export type LeaveStatus = 'pending' | 'approved' | 'rejected'
 export type LeaveType = '事假' | '病假' | '公假' | '丧假'
 
-export interface LeaveApplication {
+export interface LeaveApplication extends EmergencyContact {
   id: string
   studentName: string
   className: string
@@ -10,8 +13,6 @@ export interface LeaveApplication {
   startDate: string
   endDate: string
   reason: string
-  emergencyContactName: string
-  emergencyContactPhone: string
   status: LeaveStatus
   rejectReason: string
   submittedAt: string
@@ -158,11 +159,7 @@ export function getInitialApplications(): LeaveApplication[] {
   if (stored) {
     try {
       const parsed = JSON.parse(stored) as LeaveApplication[]
-      const migrated = parsed.map((item) => ({
-        emergencyContactName: '',
-        emergencyContactPhone: '',
-        ...item
-      }))
+      const migrated = parsed.map((item) => withEmergencyContactDefaults(item))
       return migrated
     } catch {
       // ignore

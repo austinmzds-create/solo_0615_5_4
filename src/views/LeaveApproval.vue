@@ -9,6 +9,7 @@ import {
   type LeaveApplication,
   type LeaveStatus
 } from '../mock/leaves'
+import { displayContactName, displayContactPhone } from '../utils/emergencyContact'
 import { mockUsers } from '../mock/accounts'
 
 const router = useRouter()
@@ -332,9 +333,9 @@ const handleRejectFromDetail = () => {
               <template #default="{ row }">
                 <div class="contact-cell">
                   <el-icon><User /></el-icon>
-                  <span>{{ row.emergencyContactName || '-' }}</span>
+                  <span>{{ displayContactName(row) }}</span>
                   <el-icon class="phone-icon"><Phone /></el-icon>
-                  <span>{{ row.emergencyContactPhone || '-' }}</span>
+                  <span>{{ displayContactPhone(row) }}</span>
                 </div>
               </template>
             </el-table-column>
@@ -381,8 +382,8 @@ const handleRejectFromDetail = () => {
           </el-descriptions-item>
           <el-descriptions-item label="开始日期">{{ currentApplication.startDate }}</el-descriptions-item>
           <el-descriptions-item label="结束日期">{{ currentApplication.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="紧急联系人">{{ currentApplication.emergencyContactName || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="联系电话">{{ currentApplication.emergencyContactPhone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="紧急联系人">{{ displayContactName(currentApplication) }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ displayContactPhone(currentApplication) }}</el-descriptions-item>
           <el-descriptions-item label="请假原因" :span="2">{{ currentApplication.reason }}</el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ currentApplication.submittedAt }}</el-descriptions-item>
           <el-descriptions-item v-if="currentApplication.approvedAt" label="审批时间">
