@@ -16,11 +16,20 @@ export const EMERGENCY_CONTACT_FIELDS = Object.keys(
 
 export const EMERGENCY_CONTACT_VALIDATION_RULES: FormRules = {
   emergencyContactName: [
-    { required: true, message: '请填写紧急联系人姓名', trigger: 'blur' }
+    { required: false, message: '请填写紧急联系人姓名', trigger: 'blur' }
   ],
   emergencyContactPhone: [
-    { required: true, message: '请填写紧急联系人电话', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+    { required: false, message: '请填写紧急联系人电话', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value && !/^1[3-9]\d{9}$/.test(value)) {
+          callback(new Error('请输入正确的手机号码'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
   ]
 }
 

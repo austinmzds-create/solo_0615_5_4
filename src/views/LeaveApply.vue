@@ -82,7 +82,8 @@ const resetApplyForm = () => {
   applyForm.startDate = ''
   applyForm.endDate = ''
   applyForm.reason = ''
-  Object.assign(applyForm, DEFAULT_EMERGENCY_CONTACT)
+  applyForm.emergencyContactName = ''
+  applyForm.emergencyContactPhone = ''
 }
 
 const validateDateRange = () => {

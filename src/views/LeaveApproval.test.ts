@@ -49,6 +49,61 @@ describe('LeaveApproval.vue - 紧急联系人字段回归测试', () => {
   })
 
   describe('提交申请后重新挂载审批页，紧急联系人字段应保留', () => {
+    it('第一次填写紧急联系人，第二次不填写，刷新审批页后两条记录联系人各自正确', async () => {
+      addApplication({
+        studentName: '测试学生A',
+        className: '高三(1)班',
+        courseName: '数学',
+        leaveType: '事假',
+        startDate: '2026-06-20',
+        endDate: '2026-06-21',
+        reason: '家里有事需要回家处理',
+        emergencyContactName: '王爸爸',
+        emergencyContactPhone: '13912345678'
+      })
+
+      addApplication({
+        studentName: '测试学生A',
+        className: '高三(1)班',
+        courseName: '语文',
+        leaveType: '病假',
+        startDate: '2026-06-22',
+        endDate: '2026-06-22',
+        reason: '感冒发烧需要休息',
+        emergencyContactName: '',
+        emergencyContactPhone: ''
+      })
+
+      const wrapper1 = await mountApproval()
+      const pageText1 = wrapper1.text()
+      expect(pageText1).toContain('王爸爸')
+      expect(pageText1).toContain('13912345678')
+      expect(pageText1).toContain('-')
+
+      const stored1 = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as LeaveApplication[]
+      const firstApp = stored1.find((a) => a.courseName === '数学')
+      const secondApp = stored1.find((a) => a.courseName === '语文')
+      expect(firstApp?.emergencyContactName).toBe('王爸爸')
+      expect(firstApp?.emergencyContactPhone).toBe('13912345678')
+      expect(secondApp?.emergencyContactName).toBe('')
+      expect(secondApp?.emergencyContactPhone).toBe('')
+
+      wrapper1.unmount()
+
+      const wrapper2 = await mountApproval()
+      const pageText2 = wrapper2.text()
+      expect(pageText2).toContain('王爸爸')
+      expect(pageText2).toContain('13912345678')
+
+      const stored2 = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as LeaveApplication[]
+      const firstAppAfter = stored2.find((a) => a.courseName === '数学')
+      const secondAppAfter = stored2.find((a) => a.courseName === '语文')
+      expect(firstAppAfter?.emergencyContactName).toBe('王爸爸')
+      expect(firstAppAfter?.emergencyContactPhone).toBe('13912345678')
+      expect(secondAppAfter?.emergencyContactName).toBe('')
+      expect(secondAppAfter?.emergencyContactPhone).toBe('')
+    })
+
     it('学生提交填写紧急联系人和电话的申请后，教师审批页首次挂载应显示这两个字段', async () => {
       const emergencyContactName = '王叔叔'
       const emergencyContactPhone = '13912345678'
