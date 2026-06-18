@@ -21,6 +21,8 @@ const rejectDialogVisible = ref(false)
 const currentApplication = ref<LeaveApplication | null>(null)
 const rejectReason = ref('')
 const rejectFormRef = ref<FormInstance>()
+const rejectTargetId = ref<string | null>(null)
+const detailTargetId = ref<string | null>(null)
 
 const filterForm = ref({
   className: '',
@@ -116,23 +118,51 @@ const handleReset = () => {
 }
 
 const handleView = (row: LeaveApplication) => {
-  currentApplication.value = row
+  detailTargetId.value = row.id
+  currentApplication.value = findApplicationById(row.id) || null
   detailVisible.value = true
 }
 
+const findApplicationById = (id: string): LeaveApplication | undefined => {
+  return applications.value.find((a) => a.id === id)
+}
+
+const updateApplicationById = (
+  id: string,
+  updates: Partial<LeaveApplication>
+): boolean => {
+  const target = findApplicationById(id)
+  if (!target) return false
+  Object.assign(target, updates)
+  saveApplications(applications.value)
+  return true
+}
+
+const reloadApplications = () => {
+  applications.value = getInitialApplications()
+  if (currentApplication.value) {
+    currentApplication.value =
+      findApplicationById(currentApplication.value.id) || null
+  }
+}
+
 const handleApprove = async (row: LeaveApplication) => {
+  const targetId = row.id
   try {
     await ElMessageBox.confirm('确认通过该请假申请？', '审批确认', {
       confirmButtonText: '确认通过',
       cancelButtonText: '取消',
       type: 'success'
     })
-    const target = applications.value.find((a) => a.id === row.id)
-    if (target) {
-      target.status = 'approved'
-      target.approvedAt = new Date().toLocaleString('zh-CN')
-      saveApplications(applications.value)
+    const success = updateApplicationById(targetId, {
+      status: 'approved',
+      approvedAt: new Date().toLocaleString('zh-CN')
+    })
+    if (success) {
+      reloadApplications()
       ElMessage.success('已通过该申请')
+    } else {
+      ElMessage.error('未找到目标申请记录，请刷新后重试')
     }
   } catch {
     // cancelled
@@ -140,24 +170,27 @@ const handleApprove = async (row: LeaveApplication) => {
 }
 
 const openRejectDialog = (row: LeaveApplication) => {
-  currentApplication.value = row
+  rejectTargetId.value = row.id
+  currentApplication.value = findApplicationById(row.id) || null
   rejectReason.value = ''
   rejectDialogVisible.value = true
 }
 
 const handleRejectConfirm = async () => {
   if (!rejectFormRef.value) return
+  const targetId = rejectTargetId.value
   await rejectFormRef.value.validate((valid) => {
-    if (!valid) return
-    const target = applications.value.find(
-      (a) => a.id === currentApplication.value?.id
-    )
-    if (target) {
-      target.status = 'rejected'
-      target.rejectReason = rejectReason.value
-      target.approvedAt = new Date().toLocaleString('zh-CN')
-      saveApplications(applications.value)
+    if (!valid || !targetId) return
+    const success = updateApplicationById(targetId, {
+      status: 'rejected',
+      rejectReason: rejectReason.value,
+      approvedAt: new Date().toLocaleString('zh-CN')
+    })
+    if (success) {
+      reloadApplications()
       ElMessage.warning('已驳回该申请')
+    } else {
+      ElMessage.error('未找到目标申请记录，请刷新后重试')
     }
     rejectDialogVisible.value = false
     detailVisible.value = false
@@ -167,6 +200,20 @@ const handleRejectConfirm = async () => {
 const handleLogout = () => {
   localStorage.removeItem('smart_campus_current_user')
   router.replace('/login')
+}
+
+const handleApproveFromDetail = () => {
+  if (!detailTargetId.value) return
+  detailVisible.value = false
+  const target = findApplicationById(detailTargetId.value)
+  if (target) handleApprove(target)
+}
+
+const handleRejectFromDetail = () => {
+  if (!detailTargetId.value) return
+  detailVisible.value = false
+  const target = findApplicationById(detailTargetId.value)
+  if (target) openRejectDialog(target)
 }
 </script>
 
@@ -270,7 +317,7 @@ const handleLogout = () => {
             </el-tab-pane>
           </el-tabs>
 
-          <el-table :data="filteredApplications" stripe border style="width: 100%">
+          <el-table :data="filteredApplications" row-key="id" stripe border style="width: 100%">
             <el-table-column prop="id" label="申请编号" width="100" />
             <el-table-column prop="studentName" label="学生姓名" width="100" />
             <el-table-column prop="className" label="班级" width="120" />
@@ -341,12 +388,8 @@ const handleLogout = () => {
       <template #footer>
         <template v-if="currentApplication?.status === 'pending'">
           <el-button @click="detailVisible = false">取消</el-button>
-          <el-button type="danger" @click="detailVisible = false; openRejectDialog(currentApplication!)">
-            驳回
-          </el-button>
-          <el-button type="success" @click="detailVisible = false; handleApprove(currentApplication!)">
-            通过
-          </el-button>
+          <el-button type="danger" @click="handleRejectFromDetail">驳回</el-button>
+          <el-button type="success" @click="handleApproveFromDetail">通过</el-button>
         </template>
         <template v-else>
           <el-button @click="detailVisible = false">关闭</el-button>
