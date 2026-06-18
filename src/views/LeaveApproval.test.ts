@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElMessageBox } from 'element-plus'
 import { createRouter, createWebHistory } from 'vue-router'
 import LeaveApproval from './LeaveApproval.vue'
 import {
@@ -402,5 +402,52 @@ describe('LeaveApproval.vue - 归院确认功能测试', () => {
     expect(target).toBeDefined()
     expect(target?.returned).toBe(false)
     expect(target?.returnedAt).toBe('')
+  })
+
+  it('已通过申请点击确认归院后，应写入归院状态和实际归院时间，重新挂载审批页仍能看到', async () => {
+    const app = createApprovedApplication('L908')
+    saveApplications([app])
+
+    vi.setSystemTime(new Date('2026-06-20 15:30:00'))
+
+    vi.spyOn(ElMessageBox, 'confirm').mockResolvedValueOnce(undefined as never)
+
+    const wrapper1 = await mountApproval()
+
+    const storedBefore = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as LeaveApplication[]
+    const targetBefore = storedBefore.find((a) => a.id === 'L908')
+    expect(targetBefore?.returned).toBe(false)
+    expect(targetBefore?.returnedAt).toBe('')
+
+    const returnButtons = wrapper1.findAll('button').filter((btn) => btn.text().includes('确认归院'))
+    expect(returnButtons.length).toBeGreaterThan(0)
+
+    await returnButtons[0].trigger('click')
+    await wrapper1.vm.$nextTick()
+
+    const pageTextAfter = wrapper1.text()
+    expect(pageTextAfter).toContain('已归院')
+    expect(pageTextAfter).not.toContain('确认归院')
+
+    const storedAfterClick = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as LeaveApplication[]
+    const targetAfterClick = storedAfterClick.find((a) => a.id === 'L908')
+    expect(targetAfterClick?.returned).toBe(true)
+    expect(targetAfterClick?.returnedAt).not.toBe('')
+    expect(targetAfterClick?.returnedAt).toContain('2026/6/20')
+
+    wrapper1.unmount()
+
+    const wrapper2 = await mountApproval()
+    const pageTextRemount = wrapper2.text()
+
+    expect(pageTextRemount).toContain('已归院')
+    expect(pageTextRemount).not.toContain('确认归院')
+
+    const storedRemount = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as LeaveApplication[]
+    const targetRemount = storedRemount.find((a) => a.id === 'L908')
+    expect(targetRemount?.returned).toBe(true)
+    expect(targetRemount?.returnedAt).not.toBe('')
+
+    vi.restoreAllMocks()
   })
 })
