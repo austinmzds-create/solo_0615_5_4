@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, View, Check, Close, SwitchButton } from '@element-plus/icons-vue'
+import { Search, Refresh, View, Check, Close, SwitchButton, User, Phone } from '@element-plus/icons-vue'
 import {
   getInitialApplications,
   saveApplications,
@@ -328,6 +328,16 @@ const handleRejectFromDetail = () => {
                 {{ row.startDate }} 至 {{ row.endDate }}
               </template>
             </el-table-column>
+            <el-table-column label="紧急联系人" width="200">
+              <template #default="{ row }">
+                <div class="contact-cell">
+                  <el-icon><User /></el-icon>
+                  <span>{{ row.emergencyContactName || '-' }}</span>
+                  <el-icon class="phone-icon"><Phone /></el-icon>
+                  <span>{{ row.emergencyContactPhone || '-' }}</span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="reason" label="请假原因" min-width="160" show-overflow-tooltip />
             <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }">
@@ -371,6 +381,8 @@ const handleRejectFromDetail = () => {
           </el-descriptions-item>
           <el-descriptions-item label="开始日期">{{ currentApplication.startDate }}</el-descriptions-item>
           <el-descriptions-item label="结束日期">{{ currentApplication.endDate }}</el-descriptions-item>
+          <el-descriptions-item label="紧急联系人">{{ currentApplication.emergencyContactName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ currentApplication.emergencyContactPhone || '-' }}</el-descriptions-item>
           <el-descriptions-item label="请假原因" :span="2">{{ currentApplication.reason }}</el-descriptions-item>
           <el-descriptions-item label="提交时间">{{ currentApplication.submittedAt }}</el-descriptions-item>
           <el-descriptions-item v-if="currentApplication.approvedAt" label="审批时间">
@@ -484,5 +496,17 @@ const handleRejectFromDetail = () => {
 
 .el-table {
   margin-top: 12px;
+}
+
+.contact-cell {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.phone-icon {
+  margin-left: 8px;
 }
 </style>

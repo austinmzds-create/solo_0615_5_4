@@ -59,8 +59,10 @@ const handleLogin = async () => {
 
         if (result.user.role === 'teacher') {
           router.replace('/leave-approval')
+        } else if (result.user.role === 'student') {
+          router.replace('/leave-apply')
         } else {
-          ElMessage.info('当前仅支持教师端请假审批功能')
+          ElMessage.info('当前仅支持教师端和学生端功能')
         }
       } else {
         ElMessage.error(result.message)

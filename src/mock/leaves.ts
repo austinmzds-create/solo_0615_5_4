@@ -10,6 +10,8 @@ export interface LeaveApplication {
   startDate: string
   endDate: string
   reason: string
+  emergencyContactName: string
+  emergencyContactPhone: string
   status: LeaveStatus
   rejectReason: string
   submittedAt: string
@@ -28,6 +30,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-10',
     endDate: '2026-06-11',
     reason: '发烧38.5度，需要在家休息',
+    emergencyContactName: '张父',
+    emergencyContactPhone: '13800138001',
     submittedAt: '2026-06-09 14:30'
   },
   {
@@ -39,6 +43,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-12',
     endDate: '2026-06-12',
     reason: '家中临时有事需要处理',
+    emergencyContactName: '李母',
+    emergencyContactPhone: '13800138002',
     submittedAt: '2026-06-11 09:15'
   },
   {
@@ -50,6 +56,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-14',
     endDate: '2026-06-14',
     reason: '参加市级英语演讲比赛',
+    emergencyContactName: '王父',
+    emergencyContactPhone: '13800138003',
     submittedAt: '2026-06-12 16:00'
   },
   {
@@ -61,6 +69,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-15',
     endDate: '2026-06-16',
     reason: '肠胃不适需就医检查',
+    emergencyContactName: '赵母',
+    emergencyContactPhone: '13800138004',
     submittedAt: '2026-06-14 20:45'
   },
   {
@@ -72,6 +82,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-16',
     endDate: '2026-06-17',
     reason: '需回老家办理身份证',
+    emergencyContactName: '陈父',
+    emergencyContactPhone: '13800138005',
     submittedAt: '2026-06-15 08:30'
   },
   {
@@ -83,6 +95,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-13',
     endDate: '2026-06-15',
     reason: '家中老人去世需要处理后事',
+    emergencyContactName: '刘母',
+    emergencyContactPhone: '13800138006',
     submittedAt: '2026-06-12 22:10'
   },
   {
@@ -94,6 +108,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-11',
     endDate: '2026-06-12',
     reason: '感冒发烧需卧床休息',
+    emergencyContactName: '孙父',
+    emergencyContactPhone: '13800138007',
     submittedAt: '2026-06-10 18:00'
   },
   {
@@ -105,6 +121,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-16',
     endDate: '2026-06-16',
     reason: '代表学校参加区级运动会',
+    emergencyContactName: '周母',
+    emergencyContactPhone: '13800138008',
     submittedAt: '2026-06-15 10:20'
   },
   {
@@ -116,6 +134,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-17',
     endDate: '2026-06-18',
     reason: '家中房屋修缮需协助',
+    emergencyContactName: '吴父',
+    emergencyContactPhone: '13800138009',
     submittedAt: '2026-06-16 07:00'
   },
   {
@@ -127,6 +147,8 @@ const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'appr
     startDate: '2026-06-14',
     endDate: '2026-06-14',
     reason: '牙痛需就医拔牙',
+    emergencyContactName: '郑母',
+    emergencyContactPhone: '13800138010',
     submittedAt: '2026-06-13 21:30'
   }
 ]
@@ -135,7 +157,13 @@ export function getInitialApplications(): LeaveApplication[] {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored) {
     try {
-      return JSON.parse(stored) as LeaveApplication[]
+      const parsed = JSON.parse(stored) as LeaveApplication[]
+      const migrated = parsed.map((item) => ({
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        ...item
+      }))
+      return migrated
     } catch {
       // ignore
     }
@@ -152,4 +180,24 @@ export function getInitialApplications(): LeaveApplication[] {
 
 export function saveApplications(applications: LeaveApplication[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(applications))
+}
+
+export function addApplication(application: Omit<LeaveApplication, 'id' | 'status' | 'rejectReason' | 'approvedAt' | 'submittedAt'>): LeaveApplication {
+  const applications = getInitialApplications()
+  const nextId = `L${String(applications.length + 1).padStart(3, '0')}`
+  const newApplication: LeaveApplication = {
+    ...application,
+    id: nextId,
+    status: 'pending',
+    rejectReason: '',
+    approvedAt: '',
+    submittedAt: new Date().toLocaleString('zh-CN')
+  }
+  applications.unshift(newApplication)
+  saveApplications(applications)
+  return newApplication
+}
+
+export function getApplicationsByStudent(studentName: string): LeaveApplication[] {
+  return getInitialApplications().filter((a) => a.studentName === studentName)
 }
