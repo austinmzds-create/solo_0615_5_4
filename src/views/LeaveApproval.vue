@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Search, Refresh, View, Check, Close, SwitchButton, User, Phone } from '@element-plus/icons-vue'
+import { Search, Refresh, View, Check, Close, SwitchButton, User, Phone, CircleCheck } from '@element-plus/icons-vue'
 import {
   getInitialApplications,
   saveApplications,
@@ -216,6 +216,35 @@ const handleRejectFromDetail = () => {
   const target = findApplicationById(detailTargetId.value)
   if (target) openRejectDialog(target)
 }
+
+const handleReturnConfirm = async (row: LeaveApplication) => {
+  const targetId = row.id
+  try {
+    await ElMessageBox.confirm('确认该申请人已归院？', '归院确认', {
+      confirmButtonText: '确认归院',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    const success = updateApplicationById(targetId, {
+      returned: true,
+      returnedAt: new Date().toLocaleString('zh-CN')
+    })
+    if (success) {
+      reloadApplications()
+      ElMessage.success('已标记归院')
+    } else {
+      ElMessage.error('未找到目标申请记录，请刷新后重试')
+    }
+  } catch {
+    // cancelled
+  }
+}
+
+const handleReturnFromDetail = () => {
+  if (!detailTargetId.value) return
+  const target = findApplicationById(detailTargetId.value)
+  if (target) handleReturnConfirm(target)
+}
 </script>
 
 <template>
@@ -347,7 +376,16 @@ const handleRejectFromDetail = () => {
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right" align="center">
+            <el-table-column label="归院状态" width="100" align="center">
+              <template #default="{ row }">
+                <template v-if="row.status === 'approved'">
+                  <el-tag v-if="row.returned" type="success" size="small">已归院</el-tag>
+                  <el-tag v-else type="warning" size="small">未归院</el-tag>
+                </template>
+                <span v-else class="text-muted">-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="280" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button link type="primary" :icon="View" @click="handleView(row)">
                   详情
@@ -358,6 +396,11 @@ const handleRejectFromDetail = () => {
                   </el-button>
                   <el-button link type="danger" :icon="Close" @click="openRejectDialog(row)">
                     驳回
+                  </el-button>
+                </template>
+                <template v-else-if="row.status === 'approved' && !row.returned">
+                  <el-button link type="primary" :icon="CircleCheck" @click="handleReturnConfirm(row)">
+                    确认归院
                   </el-button>
                 </template>
               </template>
@@ -380,6 +423,10 @@ const handleRejectFromDetail = () => {
               {{ statusLabel(currentApplication.status) }}
             </el-tag>
           </el-descriptions-item>
+          <el-descriptions-item v-if="currentApplication.status === 'approved'" label="归院状态">
+            <el-tag v-if="currentApplication.returned" type="success" size="small">已归院</el-tag>
+            <el-tag v-else type="warning" size="small">未归院</el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="开始日期">{{ currentApplication.startDate }}</el-descriptions-item>
           <el-descriptions-item label="结束日期">{{ currentApplication.endDate }}</el-descriptions-item>
           <el-descriptions-item label="紧急联系人">{{ displayContactName(currentApplication) }}</el-descriptions-item>
@@ -388,6 +435,9 @@ const handleRejectFromDetail = () => {
           <el-descriptions-item label="提交时间">{{ currentApplication.submittedAt }}</el-descriptions-item>
           <el-descriptions-item v-if="currentApplication.approvedAt" label="审批时间">
             {{ currentApplication.approvedAt }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="currentApplication.returned && currentApplication.returnedAt" label="归院时间">
+            {{ currentApplication.returnedAt }}
           </el-descriptions-item>
           <el-descriptions-item
             v-if="currentApplication.status === 'rejected' && currentApplication.rejectReason"
@@ -403,6 +453,10 @@ const handleRejectFromDetail = () => {
           <el-button @click="detailVisible = false">取消</el-button>
           <el-button type="danger" @click="handleRejectFromDetail">驳回</el-button>
           <el-button type="success" @click="handleApproveFromDetail">通过</el-button>
+        </template>
+        <template v-else-if="currentApplication?.status === 'approved' && !currentApplication.returned">
+          <el-button @click="detailVisible = false">关闭</el-button>
+          <el-button type="primary" @click="handleReturnFromDetail">确认归院</el-button>
         </template>
         <template v-else>
           <el-button @click="detailVisible = false">关闭</el-button>
@@ -509,5 +563,9 @@ const handleRejectFromDetail = () => {
 
 .phone-icon {
   margin-left: 8px;
+}
+
+.text-muted {
+  color: #c0c4cc;
 }
 </style>

@@ -17,11 +17,13 @@ export interface LeaveApplication extends EmergencyContact {
   rejectReason: string
   submittedAt: string
   approvedAt: string
+  returned: boolean
+  returnedAt: string
 }
 
 export const STORAGE_KEY = 'smart_campus_leave_records'
 
-const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'approvedAt'>[] = [
+const RAW_APPLICATIONS: Omit<LeaveApplication, 'status' | 'rejectReason' | 'approvedAt' | 'returned' | 'returnedAt'>[] = [
   {
     id: 'L001',
     studentName: '张伟',
@@ -159,7 +161,25 @@ export function getInitialApplications(): LeaveApplication[] {
   if (stored) {
     try {
       const parsed = JSON.parse(stored) as LeaveApplication[]
-      const migrated = parsed.map((item) => withEmergencyContactDefaults(item))
+      let needsSave = false
+      const migrated = parsed.map((item) => {
+        const withDefaults = withEmergencyContactDefaults(item)
+        const result = {
+          returned: false,
+          returnedAt: '',
+          ...withDefaults
+        }
+        if (item.returned === undefined || item.returnedAt === undefined) {
+          needsSave = true
+        }
+        if (!('emergencyContactName' in item) || !('emergencyContactPhone' in item)) {
+          needsSave = true
+        }
+        return result
+      })
+      if (needsSave) {
+        saveApplications(migrated)
+      }
       return migrated
     } catch {
       // ignore
@@ -169,7 +189,9 @@ export function getInitialApplications(): LeaveApplication[] {
     ...item,
     status: 'pending' as LeaveStatus,
     rejectReason: '',
-    approvedAt: ''
+    approvedAt: '',
+    returned: false,
+    returnedAt: ''
   }))
   saveApplications(applications)
   return applications
@@ -179,7 +201,7 @@ export function saveApplications(applications: LeaveApplication[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(applications))
 }
 
-export function addApplication(application: Omit<LeaveApplication, 'id' | 'status' | 'rejectReason' | 'approvedAt' | 'submittedAt'>): LeaveApplication {
+export function addApplication(application: Omit<LeaveApplication, 'id' | 'status' | 'rejectReason' | 'approvedAt' | 'submittedAt' | 'returned' | 'returnedAt'>): LeaveApplication {
   const applications = getInitialApplications()
   const nextId = `L${String(applications.length + 1).padStart(3, '0')}`
   const newApplication: LeaveApplication = {
@@ -188,7 +210,9 @@ export function addApplication(application: Omit<LeaveApplication, 'id' | 'statu
     status: 'pending',
     rejectReason: '',
     approvedAt: '',
-    submittedAt: new Date().toLocaleString('zh-CN')
+    submittedAt: new Date().toLocaleString('zh-CN'),
+    returned: false,
+    returnedAt: ''
   }
   applications.unshift(newApplication)
   saveApplications(applications)
